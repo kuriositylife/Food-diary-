@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food Diary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#eaf2fc;
+    --deep:#dce9f9;
+    --mid:#8fb4dd;
+    --sky:#5b8fc7;
+    --mist:#3a6494;
+    --pale:#e3eefa;
+    --paper:#0a1f3d;
+    --line:rgba(174,203,232,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',sans-serif;
+    background:
+      radial-gradient(130% 90% at 50% -10%, #1a3a64 0%, #0d2546 42%, #061528 100%) fixed;
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px}
+
+  header{padding:34px 0 0;display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:11px;font-family:'Fraunces',serif;font-weight:600;font-size:18px;letter-spacing:-.01em}
+  .mark{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 32% 30%,var(--sky),var(--deep));box-shadow:0 4px 14px rgba(19,49,92,.28)}
+  .today{font-size:13px;color:var(--mid);font-variant-numeric:tabular-nums}
+
+  .hero{padding:74px 0 40px}
+  .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.22em;color:var(--sky);font-weight:600;margin-bottom:22px}
+  .namebtn{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--deep);background:none;border:0;border-bottom:1px dashed var(--sky);cursor:pointer;padding:0 0 1px;transition:color .15s,border-color .15s}
+  .namebtn:hover{color:var(--mid);border-color:var(--mid)}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:clamp(40px,8vw,68px);
+    line-height:1.02;
+    letter-spacing:-.025em;
+    color:var(--deep);
+  }
+  h1 em{font-style:italic;color:var(--mid)}
+
+  .composer{
+    margin-top:38px;
+    background:rgba(20,46,82,.5);
+    backdrop-filter:blur(10px);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:8px;
+    box-shadow:0 24px 60px -28px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  textarea{
+    width:100%;
+    border:0;
+    background:transparent;
+    resize:none;
+    font-family:'Inter',sans-serif;
+    font-size:18px;
+    line-height:1.5;
+    color:var(--ink);
+    padding:20px 20px 8px;
+    min-height:96px;
+    outline:none;
+  }
+  textarea::placeholder{color:var(--sky);opacity:.7}
+  .composer-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 8px}
+  .clock{font-size:13px;color:var(--mid);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:7px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--sky);box-shadow:0 0 0 4px rgba(91,143,199,.18)}
+  .cta{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    color:#fff;
+    background:linear-gradient(135deg,var(--mid),var(--deep));
+    border:0;
+    padding:13px 26px;
+    border-radius:14px;
+    cursor:pointer;
+    transition:transform .15s ease,box-shadow .2s ease,opacity .2s;
+    box-shadow:0 10px 22px -8px rgba(19,49,92,.55);
+    white-space:nowrap;
+  }
+  .cta:hover{transform:translateY(-1px);box-shadow:0 14px 28px -8px rgba(19,49,92,.6)}
+  .cta:active{transform:translateY(0)}
+  .cta:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none}
+  :focus-visible{outline:2.5px solid var(--sky);outline-offset:3px}
+
+  /* daily totals */
+  .totals{
+    margin-top:26px;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:10px;
+  }
+  .stat{
+    background:rgba(20,46,82,.4);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 12px;
+    text-align:center;
+  }
+  .stat .v{font-family:'Fraunces',serif;font-size:24px;font-weight:500;color:var(--deep);font-variant-numeric:tabular-nums;line-height:1}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--sky);margin-top:7px}
+  .stat .u{font-size:11px;color:var(--mid);opacity:.75}
+
+  .timeline{padding:14px 0 90px}
+  .timeline-head{display:flex;align-items:baseline;justify-content:space-between;margin:30px 0 10px}
+  .timeline-head h2{font-family:'Fraunces',serif;font-weight:500;font-size:22px;color:var(--deep)}
+  .count{font-size:13px;color:var(--mid)}
+
+  .empty{
+    color:var(--sky);
+    font-size:15px;
+    padding:34px 4px;
+    border-top:1px solid var(--line);
+  }
+
+  .feed{list-style:none;position:relative;margin-top:6px}
+  .feed::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:linear-gradient(var(--mist),transparent)}
+  .entry{position:relative;padding:16px 0 18px 34px;border-bottom:1px solid var(--line);animation:rise .4s ease both}
+  .entry::before{content:"";position:absolute;left:1px;top:22px;width:14px;height:14px;border-radius:50%;background:#0d2546;border:3px solid var(--sky);box-shadow:0 2px 10px rgba(91,143,199,.5)}
+  .entry .stamp{font-size:12px;color:var(--mid);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-bottom:5px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .del{background:none;border:0;color:var(--mist);font-size:12px;cursor:pointer;padding:2px 6px;border-radius:6px;opacity:0;transition:opacity .15s,color .15s}
+  .entry:hover .del,.del:focus-visible{opacity:1}
+  .del:hover{color:#e88}
+  .entry .text{font-size:16px;line-height:1.5;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  .macros{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .chip{font-size:12px;color:var(--deep);background:rgba(91,143,199,.14);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-variant-numeric:tabular-nums}
+  .chip b{font-weight:600}
+  .chip.cal{background:rgba(143,180,221,.2)}
+  .pending{font-size:13px;color:var(--sky);margin-top:10px;display:flex;align-items:center;gap:8px}
+  .spin{width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--sky);border-radius:50%;animation:spin .7s linear infinite}
+  .err{font-size:13px;color:#e9a;margin-top:10px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  @media (max-width:560px){
+    .totals{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:520px){
+    .hero{padding:54px 0 30px}
+    .cta{padding:12px 20px}
+    .composer-bar{flex-wrap:wrap;gap:10px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><span class="mark"></span>Food Diary</div>
+      <div class="today" id="today"></div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Today's log · <button class="namebtn" id="namebtn">set your name</button></div>
+      <h1>What did you<br><em>eat today?</em></h1>
+
+      <div class="composer">
+        <textarea id="entry" placeholder="2 eggs, toast with butter, a flat white…" aria-label="Food entry"></textarea>
+        <div class="composer-bar">
+          <span class="clock"><span class="dot"></span><span id="clock"></span></span>
+          <button class="cta" id="save" disabled>Save entry</button>
+        </div>
+      </div>
+
+      <div class="totals" id="totals" aria-label="Today's totals">
+        <div class="stat"><div class="v" id="t-cal">0</div><div class="k">Calories</div><div class="u">kcal</div></div>
+        <div class="stat"><div class="v" id="t-pro">0</div><div class="k">Protein</div><div class="u">g</div></div>
+        <div class="stat"><div class="v" id="t-fat">0</div><div class="k">Fat</div><div class="u">g</div></div>
+        <div class="stat"><div class="v" id="t-carb">0</div><div class="k">Carbs</div><div class="u">g</div></div>
+        <div class="stat"><div class="v" id="t-sug">0</div><div class="k">Sugar</div><div class="u">g</div></div>
+      </div>
+    </section>
+
+    <section class="timeline">
+      <div class="timeline-head">
+        <h2>Your day</h2>
+        <span class="count" id="count">No entries yet</span>
+      </div>
+      <p class="empty" id="empty">Your first bite of the day will appear here, with its nutrition looked up automatically.</p>
+      <ul class="feed" id="feed"></ul>
+    </section>
+  </div>
+
+<script src="script.js"></script>
+<script>
+  const $ = s => document.querySelector(s);
+  const entryEl = $('#entry'), saveBtn = $('#save'), feed = $('#feed'),
+        empty = $('#empty'), count = $('#count'), clock = $('#clock');
+  const STORE = 'food-diary-entries';
+  const NAME_STORE = 'food-diary-name';
+
+  let owner = localStorage.getItem(NAME_STORE) || '';
+
+  const nameBtn = $('#namebtn'), h1 = document.querySelector('h1');
+
+  function applyName(){
+    if(owner){
+      nameBtn.textContent = owner + "'s diary";
+      document.title = owner + "'s Food Diary";
+      h1.innerHTML = 'What did you<br><em>eat today, ' + escapeHtml(owner) + '?</em>';
+    } else {
+      nameBtn.textContent = 'set your name';
+      document.title = 'Food Diary';
+      h1.innerHTML = 'What did you<br><em>eat today?</em>';
+    }
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+    ));
+  }
+  nameBtn.addEventListener('click', () => {
+    const next = prompt('Whose diary is this?', owner);
+    if(next === null) return;            // cancelled
+    owner = next.trim();
+    if(owner) localStorage.setItem(NAME_STORE, owner);
+    else localStorage.removeItem(NAME_STORE);
+    applyName();
+  });
+  applyName();
+
+  // entries: { id, text, time (ISO), status:'pending'|'done'|'error',
+  //            nutrition:{calories,protein,fat,carbs,sugar}, error }
+  let entries = load();
+
+  $('#today').textContent = new Date().toLocaleDateString(undefined,
+    {weekday:'long', month:'long', day:'numeric'});
+
+  const fmtTime = d => new Date(d).toLocaleTimeString(undefined,
+    {hour:'numeric', minute:'2-digit'});
+  const fmtDate = d => new Date(d).toLocaleDateString(undefined,
+    {weekday:'short', month:'short', day:'numeric'});
+
+  function tick(){ clock.textContent = fmtTime(new Date()); }
+  tick(); setInterval(tick, 1000);
+
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(STORE)) || []; }
+    catch{ return []; }
+  }
+  function persist(){
+    try{ localStorage.setItem(STORE, JSON.stringify(entries)); }catch{}
+  }
+
+  entryEl.addEventListener('input', () => {
+    saveBtn.disabled = entryEl.value.trim() === '';
+  });
+  entryEl.addEventListener('keydown', e => {
+    if((e.metaKey||e.ctrlKey) && e.key==='Enter') save();
+  });
+  saveBtn.addEventListener('click', save);
+
+  async function save(){
+    const text = entryEl.value.trim();
+    if(!text) return;
+    const item = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      text,
+      name: owner || '',
+      time: new Date().toISOString(),   // date + time saved automatically
+      status: 'pending',
+      nutrition: null,
+      error: null
+    };
+    entries.unshift(item);
+    entryEl.value = '';
+    saveBtn.disabled = true;
+    entryEl.focus();
+    persist();
+    render();
+    // log to the sheet immediately (name, time, food; macros fill in later if available)
+    if (typeof sendToSheet === 'function' && !item.synced) {
+      item.synced = true;
+      sendToSheet(item);
+    }
+    lookup(item);
+  }
+
+  async function lookup(item){
+    try{
+      const res = await fetch('/.netlify/functions/nutrition', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ query: item.text })
+      });
+      if(!res.ok){
+        const msg = await res.text();
+        throw new Error(msg || ('Lookup failed (' + res.status + ')'));
+      }
+      const data = await res.json();
+      item.nutrition = {
+        calories: Math.round(data.calories || 0),
+        protein:  Math.round(data.protein  || 0),
+        fat:      Math.round(data.fat      || 0),
+        carbs:    Math.round(data.carbs    || 0),
+        sugar:    Math.round(data.sugar    || 0)
+      };
+      item.status = 'done';
+    }catch(err){
+      item.status = 'error';
+      item.error = err.message || 'Could not look that up.';
+    }
+    persist();
+    render();
+  }
+
+  function retry(id){
+    const item = entries.find(e => e.id === id);
+    if(!item) return;
+    item.status = 'pending'; item.error = null;
+    persist(); render();
+    lookup(item);
+  }
+
+  function remove(id){
+    entries = entries.filter(e => e.id !== id);
+    persist(); render();
+  }
+
+  function isToday(iso){
+    const d = new Date(iso), n = new Date();
+    return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
+  }
+
+  function renderTotals(){
+    const sum = {calories:0,protein:0,fat:0,carbs:0,sugar:0};
+    entries.filter(e => e.status==='done' && isToday(e.time)).forEach(e => {
+      for(const k in sum) sum[k] += e.nutrition[k] || 0;
+    });
+    $('#t-cal').textContent  = sum.calories;
+    $('#t-pro').textContent  = sum.protein;
+    $('#t-fat').textContent  = sum.fat;
+    $('#t-carb').textContent = sum.carbs;
+    $('#t-sug').textContent  = sum.sugar;
+  }
+
+  function render(){
+    empty.style.display = entries.length ? 'none' : 'block';
+    count.textContent = entries.length
+      ? entries.length + (entries.length===1?' entry':' entries')
+      : 'No entries yet';
+
+    feed.innerHTML = entries.map(e => {
+      let body = '';
+      if(e.status === 'pending'){
+        body = `<div class="pending"><span class="spin"></span>Looking up nutrition…</div>`;
+      } else if(e.status === 'error'){
+        body = `<div class="err">Couldn't look that up. <button class="del" data-retry="${e.id}" style="opacity:1;color:var(--sky)">Try again</button></div>`;
+      } else if(e.nutrition){
+        const n = e.nutrition;
+        body = `<div class="macros">
+          <span class="chip cal"><b>${n.calories}</b> kcal</span>
+          <span class="chip"><b>${n.protein}</b>g protein</span>
+          <span class="chip"><b>${n.fat}</b>g fat</span>
+          <span class="chip"><b>${n.carbs}</b>g carbs</span>
+          <span class="chip"><b>${n.sugar}</b>g sugar</span>
+        </div>`;
+      }
+      return `
+        <li class="entry">
+          <div class="stamp">
+            <span>${fmtDate(e.time)} · ${fmtTime(e.time)}</span>
+            <button class="del" data-del="${e.id}" aria-label="Delete entry">Delete</button>
+          </div>
+          <div class="text" data-text="${e.id}"></div>
+          ${body}
+        </li>`;
+    }).join('');
+
+    // set text safely (avoid HTML injection from food names)
+    entries.forEach(e => {
+      const el = feed.querySelector(`[data-text="${e.id}"]`);
+      if(el) el.textContent = e.text;
+    });
+
+    feed.querySelectorAll('[data-del]').forEach(b =>
+      b.addEventListener('click', () => remove(b.getAttribute('data-del'))));
+    feed.querySelectorAll('[data-retry]').forEach(b =>
+      b.addEventListener('click', () => retry(b.getAttribute('data-retry'))));
+
+    renderTotals();
+  }
+
+  // resume any entries left 'pending' from a previous session
+  render();
+  entries.filter(e => e.status === 'pending').forEach(lookup);
+</script>
+</body>
+</html>
