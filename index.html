@@ -95,6 +95,30 @@
   :focus-visible{outline:2.5px solid var(--sky);outline-offset:3px}
 
   /* daily totals */
+  .suggests{margin-top:24px}
+  .suggests-label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--sky);font-weight:600;display:block;margin-bottom:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .suggest{
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    background:rgba(20,46,82,.4);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:11px 16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition:transform .14s ease,border-color .18s,background .18s,box-shadow .2s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .suggest:hover{border-color:var(--sky);background:rgba(28,60,102,.55);transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(0,0,0,.7)}
+  .suggest:active{transform:translateY(0)}
+  .suggest .plus{font-size:16px;color:var(--sky);line-height:1;font-weight:400}
+  .suggest.adding{border-color:var(--sky);background:rgba(45,93,138,.5)}
+  .suggest.adding .plus{color:var(--deep)}
+
   .totals{
     margin-top:26px;
     display:grid;
@@ -171,6 +195,11 @@
           <span class="clock"><span class="dot"></span><span id="clock"></span></span>
           <button class="cta" id="save" disabled>Save entry</button>
         </div>
+      </div>
+
+      <div class="suggests" aria-label="Quick add a common meal">
+        <span class="suggests-label">Quick add</span>
+        <div class="chips" id="suggests"></div>
       </div>
 
       <div class="totals" id="totals" aria-label="Today's totals">
@@ -264,6 +293,13 @@
   async function save(){
     const text = entryEl.value.trim();
     if(!text) return;
+    entryEl.value = '';
+    saveBtn.disabled = true;
+    entryEl.focus();
+    saveEntry(text);
+  }
+
+  function saveEntry(text){
     const item = {
       id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
       text,
@@ -274,9 +310,6 @@
       error: null
     };
     entries.unshift(item);
-    entryEl.value = '';
-    saveBtn.disabled = true;
-    entryEl.focus();
     persist();
     render();
     // log to the sheet immediately (name, time, food; macros fill in later if available)
@@ -287,29 +320,81 @@
     lookup(item);
   }
 
-  async function lookup(item){
+  // Quick-add meal suggestions — tap to save instantly, then Nutritionix fills macros.
+  const MEALS = [
+    '2 eggs', 'Oatmeal with banana', 'Grilled chicken salad',
+    'Greek yogurt with berries', 'Turkey sandwich', 'Apple',
+    'Protein shake', 'Avocado toast', 'Banana',
+    'Rice and beans', 'Salmon with vegetables', 'Coffee with milk'
+  ];
+  const suggestsEl = $('#suggests');
+  MEALS.forEach(meal => {
+    const b = document.createElement('button');
+    b.className = 'suggest';
+    b.type = 'button';
+    b.innerHTML = '<span class="plus">+</span>';
+    b.appendChild(document.createTextNode(meal));
+    b.addEventListener('click', () => {
+      b.classList.add('adding');
+      setTimeout(() => b.classList.remove('adding'), 320);
+      saveEntry(meal);   // tap saves instantly as an entry
+    });
+    suggestsEl.appendChild(b);
+  });
+
+  // ── Your food database (loaded from the "Foods" tab of your Google Sheet) ──
+  let foodDB = [];          // [{name, calories, protein, fat, carbs, sugar}]
+  let foodDBLoaded = false;
+
+  async function loadFoodDB(){
+    if(!SHEET_SCRIPT_URL || SHEET_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL') return;
     try{
-      const res = await fetch('/.netlify/functions/nutrition', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ query: item.text })
-      });
-      if(!res.ok){
-        const msg = await res.text();
-        throw new Error(msg || ('Lookup failed (' + res.status + ')'));
-      }
+      const res = await fetch(SHEET_SCRIPT_URL);   // GET → doGet returns the Foods tab
       const data = await res.json();
+      if(data && Array.isArray(data.foods)) foodDB = data.foods;
+    }catch(err){
+      console.error('Could not load food database:', err.message);
+    }
+    foodDBLoaded = true;
+    // re-run any entries that were waiting on the database
+    entries.filter(e => e.status === 'pending').forEach(lookup);
+  }
+
+  // Match a typed meal against your food list.
+  // Case-insensitive; a food matches if its name appears in what you typed
+  // (so a "Eggs" row matches "2 eggs"). Uses your macros as-is (no qty math).
+  function matchFood(text){
+    const q = text.toLowerCase();
+    // prefer the longest matching name (so "chicken salad" beats "chicken")
+    let best = null;
+    for(const f of foodDB){
+      const name = f.name.toLowerCase();
+      if(q.includes(name)){
+        if(!best || name.length > best.name.toLowerCase().length) best = f;
+      }
+    }
+    return best;
+  }
+
+  function lookup(item){
+    if(!foodDBLoaded){
+      item.status = 'pending';   // wait until the database has loaded
+      return;
+    }
+    const match = matchFood(item.text);
+    if(match){
       item.nutrition = {
-        calories: Math.round(data.calories || 0),
-        protein:  Math.round(data.protein  || 0),
-        fat:      Math.round(data.fat      || 0),
-        carbs:    Math.round(data.carbs    || 0),
-        sugar:    Math.round(data.sugar    || 0)
+        calories: Math.round(match.calories || 0),
+        protein:  Math.round(match.protein  || 0),
+        fat:      Math.round(match.fat      || 0),
+        carbs:    Math.round(match.carbs    || 0),
+        sugar:    Math.round(match.sugar    || 0)
       };
       item.status = 'done';
-    }catch(err){
+      item.error = null;
+    }else{
       item.status = 'error';
-      item.error = err.message || 'Could not look that up.';
+      item.error = 'Not in your foods yet.';
     }
     persist();
     render();
@@ -354,9 +439,9 @@
     feed.innerHTML = entries.map(e => {
       let body = '';
       if(e.status === 'pending'){
-        body = `<div class="pending"><span class="spin"></span>Looking up nutrition…</div>`;
+        body = `<div class="pending"><span class="spin"></span>Checking your foods…</div>`;
       } else if(e.status === 'error'){
-        body = `<div class="err">Couldn't look that up. <button class="del" data-retry="${e.id}" style="opacity:1;color:var(--sky)">Try again</button></div>`;
+        body = `<div class="err">${e.error || 'Not in your foods yet.'} <button class="del" data-retry="${e.id}" style="opacity:1;color:var(--sky)">Retry</button></div>`;
       } else if(e.nutrition){
         const n = e.nutrition;
         body = `<div class="macros">
@@ -392,9 +477,10 @@
     renderTotals();
   }
 
-  // resume any entries left 'pending' from a previous session
+  // On load: render, then fetch your food database. loadFoodDB() re-runs any
+  // pending entries once the list is in, so nothing looks up against an empty DB.
   render();
-  entries.filter(e => e.status === 'pending').forEach(lookup);
+  loadFoodDB();
 </script>
 </body>
 </html>
